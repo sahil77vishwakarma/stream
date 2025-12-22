@@ -13,10 +13,13 @@ import androidx.navigation.fragment.findNavController
 import com.example.stream.R
 import com.example.stream.activities.ShoppingActivity
 import com.example.stream.databinding.FragmentLoginBinding
+import com.example.stream.dialog.setupBottomSheetDialog
 import com.example.stream.util.Resource
 import com.example.stream.viewmodels.LoginViewModel
+import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LoginFragment: Fragment(R.layout.fragment_login) {
@@ -47,6 +50,29 @@ class LoginFragment: Fragment(R.layout.fragment_login) {
             }
         }
 
+        binding.tvForgetPassword.setOnClickListener {
+            setupBottomSheetDialog {email ->
+                viewModel.resetPassword(email)
+            }
+        }
+
+        lifecycleScope.launchWhenStarted {
+            viewModel.resetPassword.collect {
+                when(it){
+                    is Resource.Loading ->{
+
+                    }
+                    is Resource.Success ->{
+                        Snackbar.make(requireView(),"Reset link was sent to your email", Snackbar.LENGTH_LONG).show()
+                    }
+                    is Resource.Error ->{
+                        Snackbar.make(requireView(),"Error : ${it.message}", Snackbar.LENGTH_LONG).show()
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
         lifecycleScope.launchWhenStarted {
             viewModel.login.collect{
                 when(it){
@@ -70,3 +96,5 @@ class LoginFragment: Fragment(R.layout.fragment_login) {
         }
     }
 }
+
+

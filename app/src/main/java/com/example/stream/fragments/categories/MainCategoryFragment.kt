@@ -9,9 +9,11 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.stream.R
 import com.example.stream.adapters.BestDealAdapter
+import com.example.stream.adapters.BestProductAdapter
 import com.example.stream.adapters.SpeacialProductsAdapter
 import com.example.stream.databinding.FragmentMainCategoryBinding
 import com.example.stream.util.Resource
@@ -21,12 +23,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 private val TAG = "MainCategoryFragment"
-
 @AndroidEntryPoint
 class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
     private lateinit var binding: FragmentMainCategoryBinding
     private lateinit var specialProductsAdapter: SpeacialProductsAdapter
     private lateinit var bestDealsAdapter: BestDealAdapter
+    private lateinit var bestProductsAdapter: BestProductAdapter
+
     private val viewModel by viewModels<MainCategoryViewModel>()
 
 
@@ -47,6 +50,7 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
 
         setupSpecialProductsRv()
         setupBestDealsRv()
+        setupBestProductsRv()
 
         lifecycleScope.launch {
             viewModel.specialProducts.collectLatest {
@@ -90,7 +94,32 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
             }
         }
 
+
+
+        lifecycleScope.launch {
+            viewModel.bestProducts.collectLatest {
+                when(it){
+                    is Resource.Loading -> {
+                        showLoadings()
+                    }
+                    is Resource.Success -> {
+                        bestProductsAdapter.differ.submitList(it.data)
+                        hideLoadings()
+                    }
+                    is Resource.Error ->{
+                        hideLoadings()
+                        Log.e(TAG, it.message.toString())
+                        Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show()
+                    }
+                    else -> Unit
+                }
+            }
+        }
+
+
     }
+
+
 
     private fun hideLoadings() {
         binding.mainCategoryProgresBar.visibility = View.GONE
@@ -116,6 +145,16 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
             layoutManager =
                 LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
             adapter = bestDealsAdapter
+        }
+    }
+
+    private fun setupBestProductsRv() {
+        bestProductsAdapter = BestProductAdapter()
+
+        binding.rvBestProducts.apply {
+            layoutManager =
+                GridLayoutManager(requireContext(),2, GridLayoutManager.VERTICAL, false)
+            adapter = bestProductsAdapter
         }
     }
 }

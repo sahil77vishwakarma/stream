@@ -52,11 +52,20 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
         setupBestDealsRv()
         setupBestProductsRv()
 
+        observer()
+
+
+
+    }
+
+
+    private fun observer(){
+
         lifecycleScope.launch {
             viewModel.specialProducts.collectLatest {
                 when(it){
                     is Resource.Loading -> {
-                       showLoadings()
+                        showLoadings()
                     }
                     is Resource.Success -> {
                         Log.d(TAG, "Products size: ${it.data?.size}")
@@ -115,10 +124,7 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
                 }
             }
         }
-
-
     }
-
 
 
     private fun hideLoadings() {

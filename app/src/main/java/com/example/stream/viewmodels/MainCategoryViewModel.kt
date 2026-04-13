@@ -1,7 +1,6 @@
 package com.example.stream.viewmodels
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stream.data.Product
@@ -16,17 +15,20 @@ import javax.inject.Inject
 @HiltViewModel
 class MainCategoryViewModel @Inject constructor(
     private val fireStore: FirebaseFirestore
-) : ViewModel(){
+) : ViewModel() {
     private val _specialProducts = MutableStateFlow<Resource<List<Product>>>(Resource.Unspecified())
     val specialProducts: StateFlow<Resource<List<Product>>> = _specialProducts
 
-
-    private val _bestDealsProducts = MutableStateFlow<Resource<List<Product>>>(Resource.Unspecified())
-    val  bestDealsProducts: StateFlow<Resource<List<Product>>> = _bestDealsProducts
+    private val _bestDealsProducts =
+        MutableStateFlow<Resource<List<Product>>>(Resource.Unspecified())
+    val bestDealsProducts: StateFlow<Resource<List<Product>>> = _bestDealsProducts
 
     private val _bestProducts = MutableStateFlow<Resource<List<Product>>>(Resource.Unspecified())
     val bestProducts: StateFlow<Resource<List<Product>>> = _bestProducts
 
+    private val bestProductPageInfo = PagingInfo()
+    private val specialProductPageInfo = PagingInfo()
+    private val bestDealsProductPageInfo = PagingInfo()
 
 
 
@@ -37,65 +39,102 @@ class MainCategoryViewModel @Inject constructor(
     }
 
 
-    fun fetchSpecialProducts(){
+    fun fetchSpecialProducts() {
         viewModelScope.launch {
             _specialProducts.emit(Resource.Loading())
+
+
+            fireStore.collection("Products").whereEqualTo("category", "Special Products").get()
+                .addOnSuccessListener { result ->
+                    val specialProductsList = result.toObjects(Product::class.java)
+                    viewModelScope.launch {
+                        _specialProducts.emit(Resource.Success(specialProductsList))
+                    }
+                }.addOnFailureListener {
+                    viewModelScope.launch {
+                        _specialProducts.emit(Resource.Error(it.message.toString()))
+                    }
+                }
         }
-
-
-        fireStore.collection("Products").whereEqualTo("category", "Special Products").get().addOnSuccessListener { result ->
-            val specialProductsList = result.toObjects(Product::class.java)
-            viewModelScope.launch {
-                _specialProducts.emit(Resource.Success(specialProductsList))
-            }
-        }.addOnFailureListener {
-            viewModelScope.launch {
-                _specialProducts.emit(Resource.Error(it.message.toString()))
-            }
-        }
-
     }
 
 
     fun fetchBestDeals() {
-        viewModelScope.launch {
-            _bestDealsProducts.emit(Resource.Loading())
-        }
-        fireStore.collection("Products").whereEqualTo("category", "Best Deals").get()
-            .addOnSuccessListener { result ->
-                val bestDealsProducts = result.toObjects(Product::class.java)
-                viewModelScope.launch {
-                    _bestDealsProducts.emit(Resource.Success(bestDealsProducts))
-                }
-            }.addOnFailureListener {
-                viewModelScope.launch {
-                    _bestDealsProducts.emit(Resource.Error(it.message.toString()))
-                }
+        if (!bestDealsProductPageInfo.isPagingEnd && !bestDealsProductPageInfo.isLoading) {
+            viewModelScope.launch {
+                _bestDealsProducts.emit(Resource.Loading())
+                bestDealsProductPageInfo.isLoading = true
+                Log.d(
+                    "MainCategoryViewModel",
+                    "bestDealsProductPageInfo.productPage: ${bestDealsProductPageInfo.productPage}"
+                )
+//
+//            fireStore.collection("Products").whereEqualTo("category", "Best Deals").get()
+//                .addOnSuccessListener { result ->
+//                    val bestDealsProducts = result.toObjects(Product::class.java)
+//                    viewModelScope.launch {
+//                        _bestDealsProducts.emit(Resource.Success(bestDealsProducts))
+//                    }
+//                }.addOnFailureListener {
+//                    viewModelScope.launch {
+//                        _bestDealsProducts.emit(Resource.Error(it.message.toString()))
+//                    }
+//                }
+                fireStore.collection("Products").limit(bestDealsProductPageInfo.productPage * 2)
+                    .get()
+                    .addOnSuccessListener { result ->
+                        val bestDealsProducts = result.toObjects(Product::class.java)
+                        if (bestDealsProducts.size == bestDealsProductPageInfo.oldProduct.size) {
+                            bestDealsProductPageInfo.isPagingEnd = true
+                        } else {
+                            bestDealsProductPageInfo.oldProduct = bestDealsProducts
+                        }
+                        bestDealsProductPageInfo.productPage++
+                        bestDealsProductPageInfo.isLoading = false
+                        viewModelScope.launch {
+                            _bestDealsProducts.emit(Resource.Success(bestDealsProducts))
+                        }
+                    }.addOnFailureListener {
+                        viewModelScope.launch {
+                            _bestDealsProducts.emit(Resource.Error(it.message.toString()))
+                        }
+                    }
             }
-
+        }else{ return}
     }
 
 
-    fun fetchBestProducts(){
-        viewModelScope.launch {
-            _bestProducts.emit(Resource.Loading())
-        }
-        fireStore.collection("Products").whereEqualTo("category", "Best Deals").get()
-            .addOnSuccessListener { result ->
-                val bestProducts = result.toObjects(Product::class.java)
-                viewModelScope.launch {
-                    _bestProducts.emit(Resource.Success(bestProducts))
-                }
-            }.addOnFailureListener {
-                viewModelScope.launch {
-                    _bestProducts.emit(Resource.Error(it.message.toString()))
-                }
+    fun fetchBestProducts() {
+        if (!bestProductPageInfo.isPagingEnd) {
+            viewModelScope.launch {
+                _bestProducts.emit(Resource.Loading())
+                fireStore.collection("Products").limit(bestProductPageInfo.productPage * 10).get()
+                    .addOnSuccessListener { result ->
+                        val bestProducts = result.toObjects(Product::class.java)
+                        if (bestProducts.size == bestProductPageInfo.oldProduct.size) {
+                            bestProductPageInfo.isPagingEnd = true
+                        } else {
+                            bestProductPageInfo.oldProduct = bestProducts
+                        }
+                        viewModelScope.launch {
+                            _bestProducts.emit(Resource.Success(bestProducts))
+                        }
+                        bestProductPageInfo.productPage++
+                    }.addOnFailureListener {
+                        viewModelScope.launch {
+                            _bestProducts.emit(Resource.Error(it.message.toString()))
+                        }
+                    }
             }
+        }
     }
-
-
-
-
-
 
 }
+
+
+internal data class PagingInfo(
+    var productPage: Long = 1,
+    var oldProduct: List<Product> = emptyList(),
+    var isPagingEnd: Boolean = false,
+    var isLoading: Boolean = false
+)

@@ -6,11 +6,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.stream.R
 import com.example.stream.adapters.BestDealAdapter
 import com.example.stream.adapters.BestProductAdapter
@@ -29,17 +31,13 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
     private lateinit var specialProductsAdapter: SpeacialProductsAdapter
     private lateinit var bestDealsAdapter: BestDealAdapter
     private lateinit var bestProductsAdapter: BestProductAdapter
-
     private val viewModel by viewModels<MainCategoryViewModel>()
-
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-
         binding = FragmentMainCategoryBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -78,16 +76,16 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
             viewModel.bestDealsProducts.collectLatest {
                 when(it){
                     is Resource.Loading -> {
-                        showLoadings()
+                        binding.bestDealsProgressBar.visibility = View.VISIBLE
                     }
                     is Resource.Success -> {
                         bestDealsAdapter.differ.submitList(it.data)
-                        hideLoadings()
+                        binding.bestDealsProgressBar.visibility = View.GONE
                     }
                     is Resource.Error ->{
-                        hideLoadings()
                         Log.e(TAG, it.message.toString())
                         Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show()
+                        binding.bestDealsProgressBar.visibility = View.GONE
                     }
                     else -> Unit
                 }
@@ -100,23 +98,46 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
             viewModel.bestProducts.collectLatest {
                 when(it){
                     is Resource.Loading -> {
-                        showLoadings()
+                        binding.bestProductProgressBar.visibility = View.VISIBLE
                     }
                     is Resource.Success -> {
                         bestProductsAdapter.differ.submitList(it.data)
-                        hideLoadings()
+                        binding.bestProductProgressBar.visibility = View.GONE
                     }
                     is Resource.Error ->{
-                        hideLoadings()
                         Log.e(TAG, it.message.toString())
                         Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show()
+                        binding.bestProductProgressBar.visibility = View.GONE
                     }
                     else -> Unit
                 }
             }
         }
 
+        binding.nestedScrollMainCategory.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { v, scrollX, scrollY, _, _ ->
+            if (v.getChildAt(0).bottom <= v.height + scrollY) {
+                viewModel.fetchBestProducts()
+            }
+        })
 
+
+        binding.rvBestDealsProducts.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
+
+                if (lastVisibleItemPosition >= totalItemCount - 2) {
+                    // Reached end horizontally
+                    viewModel.fetchBestDeals()
+                }
+            }
+        })
     }
 
 

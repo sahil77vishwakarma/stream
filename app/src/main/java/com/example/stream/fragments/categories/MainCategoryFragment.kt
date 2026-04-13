@@ -141,7 +141,6 @@ class MainCategoryFragment: Fragment(R.layout.fragment_main_category) {
     }
 
 
-
     private fun hideLoadings() {
         binding.mainCategoryProgresBar.visibility = View.GONE
     }

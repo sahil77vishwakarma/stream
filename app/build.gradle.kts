@@ -1,11 +1,11 @@
 plugins {
-    alias(libs.plugins.android.application) // Android Application Plugin
-    alias(libs.plugins.jetbrains.kotlin.android) // Kotlin Android Plugin
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.androidx.navigation.safeargs)
+    alias(libs.plugins.google.gms.google.services)
     id("kotlin-parcelize")
-    id("androidx.navigation.safeargs.kotlin")
-    id("com.google.gms.google-services")
-    id("kotlin-kapt")
-    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -66,10 +66,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     // Navigation component
-    val nav_version = "2.5.2"
-    implementation("androidx.navigation:navigation-fragment-ktx:$nav_version")
-    implementation("androidx.navigation:navigation-ui-ktx:$nav_version")
-
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
     // Loading button library
     implementation("io.writeopia:loading-button:3.0.0")
 
@@ -87,11 +85,10 @@ dependencies {
 //    implementation("com.shuhart.stepview:stepview:1.5.1")
 
 
-    implementation("androidx.navigation:navigation-fragment-ktx:2.8.8")
 
-    // Dagger Hilt
-    implementation("com.google.dagger:hilt-android:2.51.1")
-    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+    // Hilt — ksp instead of kapt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     // Firebase Authentication
     implementation("com.google.firebase:firebase-auth:21.0.6")

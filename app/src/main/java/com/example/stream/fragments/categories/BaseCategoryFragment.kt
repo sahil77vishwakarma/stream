@@ -34,29 +34,41 @@ open class BaseCategoryFragment : Fragment(R.layout.fragment_base_category) {
         setupOfferRv()
         setupBestProductsRv()
 
-        binding.rvOffser.addOnScrollListener(  object : RecyclerView.OnScrollListener(){
+        binding.rvOffer.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-
-                if (!recyclerView.canScrollHorizontally(1) && dx > 0){
+                if (!recyclerView.canScrollHorizontally(1) && dx > 0
+                    && (recyclerView.adapter?.itemCount ?: 0) > 0) {
                     onOfferPagingRequest()
                 }
             }
         })
 
-        binding.nestedScrollBaseCategory.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { v, scrollX, scrollY, _, _ ->
-            if (v.getChildAt(0).bottom <= v.height + scrollY) {
+        binding.nestedScrollBaseCategory.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { v, _, scrollY, _, oldScrollY ->
+            if (scrollY > oldScrollY && v.getChildAt(0).bottom <= v.height + scrollY) {
                 onBestProductsPagingRequest()
             }
         })
     }
 
-    private fun setupOfferRv() {
-        binding.rvOffser.apply{
-            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-            adapter = offerAdapter
-        }
+
+    fun showOfferLoading(){
+        binding.offerProductProgressBar.visibility = View.VISIBLE
     }
+
+    fun hideOfferLoading(){
+        binding.offerProductProgressBar.visibility = View.GONE
+    }
+
+    fun showBestProductLoading(){
+        binding.bestProductProgressBar.visibility = View.VISIBLE
+    }
+
+    fun hideBestProductLoading(){
+        binding.bestProductProgressBar.visibility = View.GONE
+    }
+
+
 
     open fun onOfferPagingRequest(){
 
@@ -71,6 +83,13 @@ open class BaseCategoryFragment : Fragment(R.layout.fragment_base_category) {
             layoutManager =
                 GridLayoutManager(requireContext(),2, GridLayoutManager.VERTICAL, false)
             adapter = bestProductAdapter
+        }
+    }
+
+    private fun setupOfferRv() {
+        binding.rvOffer.apply{
+            layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+            adapter = offerAdapter
         }
     }
 }

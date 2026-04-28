@@ -34,7 +34,6 @@ class BestProductAdapter : RecyclerView.Adapter<BestProductAdapter.BestProductVi
         }
     }
 
-
     private val diffCallback = object : DiffUtil.ItemCallback<Product>() {
         override fun areItemsTheSame(
             oldItem: Product,
@@ -49,7 +48,6 @@ class BestProductAdapter : RecyclerView.Adapter<BestProductAdapter.BestProductVi
         ): Boolean {
             return oldItem == newItem
         }
-
     }
 
     val differ = AsyncListDiffer(this, diffCallback)
